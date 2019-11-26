@@ -1,8 +1,8 @@
 name: leancloud_realtime_flutter
 description: A new flutter plugin project.
-version: 0.0.1
-author:
-homepage:
+version: 0.0.2
+author: czl<orange030@gmail.com>
+homepage: https://github.com/paraself/leancloud-realtime-flutter
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
