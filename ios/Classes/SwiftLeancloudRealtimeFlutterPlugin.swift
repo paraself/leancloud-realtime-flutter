@@ -30,11 +30,87 @@ import LeanCloud
 //    }
 //}
 open class CustomMessage : IMCategorizedMessage{
-    public static var _messageType: MessageType = 0;
-    open class override var messageType: MessageType{
-        return _messageType;
+}
+
+open class CustomMessage0 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 0
     }
 }
+open class CustomMessage1 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 1
+    }
+}
+open class CustomMessage2 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 2
+    }
+}
+open class CustomMessage3 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 3
+    }
+}
+open class CustomMessage4 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 4
+    }
+}
+open class CustomMessage5 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 5
+    }
+}
+open class CustomMessage6 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 6
+    }
+}
+open class CustomMessage7 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 7
+    }
+}
+open class CustomMessage8 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 8
+    }
+}
+open class CustomMessage9 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 9
+    }
+}
+open class CustomMessage10 : CustomMessage{
+    open static override var messageType: MessageType{
+        return 10
+    }
+}
+
+
+
+var CustomMessageTypeMap: [Int: IMCategorizedMessage.Type] = [
+//    IMCategorizedMessage.ReservedType.none.rawValue: IMCategorizedMessage.self,
+    IMCategorizedMessage.ReservedType.text.rawValue: IMTextMessage.self,
+    IMCategorizedMessage.ReservedType.image.rawValue: IMImageMessage.self,
+    IMCategorizedMessage.ReservedType.audio.rawValue: IMAudioMessage.self,
+    IMCategorizedMessage.ReservedType.video.rawValue: IMVideoMessage.self,
+    IMCategorizedMessage.ReservedType.location.rawValue: IMLocationMessage.self,
+    IMCategorizedMessage.ReservedType.file.rawValue: IMFileMessage.self,
+    IMCategorizedMessage.ReservedType.recalled.rawValue: IMRecalledMessage.self,
+    0:CustomMessage0.self,
+    1:CustomMessage1.self,
+    2:CustomMessage2.self,
+    3:CustomMessage3.self,
+    4:CustomMessage4.self,
+    5:CustomMessage5.self,
+    6:CustomMessage6.self,
+    7:CustomMessage7.self,
+    8:CustomMessage8.self,
+    9:CustomMessage9.self,
+    10:CustomMessage10.self,
+]
 
 
 extension IMMessage.PatchedReason{
@@ -69,7 +145,59 @@ extension IMConversation.MessageQueryEndpoint
         self.sentTimestamp = parameters["sentTimestamp"] as? Int64
     }
 }
+extension LCFile{
+    public convenience init(data:[String: Any] ){
+        var filePath = data["filePath"] as? String
+        if(filePath != nil){
+            self.init(payload: Payload.fileURL(fileURL: URL(fileURLWithPath: filePath!)))
+        }
+        else if(data["data"] != nil){
+            var bytes = (data["data"] as! FlutterStandardTypedData).data
+            self.init(payload: Payload.data(data: bytes))
+        }
+        else{
+            self.init()
+        }
+        self.name = (data["name"] as? String)?.lcString
+        self.url = (data["url"] as? String)?.lcString
+        if(data["metaData"] != nil){
+            self.metaData = LCDictionary((data["metaData"] as! [String: String]))
+        }
+    }
+    public func toMap()->[String: Any]{
+        return [
+            "url":self.url?.stringValue,
+            "name":self.name?.stringValue,
+            "metaData":self.metaData?.rawValue
+        ]
+    }
+    
+    public func fromMap(data:[String: Any] ){
+    }
+}
 extension IMMessage{
+    
+    public func fromMap(data:[String: Any] ){
+        self.isAllMembersMentioned = data["isAllMembersMentioned"] as? Bool
+        self.mentionedMembers = data["mentionedMembers"] as? [String]
+        
+        if(self is IMCategorizedMessage){
+            let message = self as! IMCategorizedMessage
+            message.text = data["text"] as? String
+            message.attributes = data["text"] as? [String : Any]
+            
+            if(data["file"] != nil){
+                message.file = LCFile( data: (data["file"] as! [String: Any]))
+            }
+
+            if(data["rawData"] != nil){
+                var rawData = data["rawData"] as! [String: Any]
+                for var e in rawData {
+                    message[e.key] = e.value
+                }
+            }
+        }
+    }
     
     public func toMap()->[String: Any]{
         var data:[String: Any] = [:]
@@ -99,9 +227,9 @@ extension IMMessage{
             let messageCategorizing = self as! IMCategorizedMessage
             data["text"] = messageCategorizing.text
             data["attributes"] = messageCategorizing.attributes
-            data["url"] = messageCategorizing.file?.url?.stringValue
+            data["file"] = messageCategorizing.file?.toMap()
             
-            var reservedType:Int = 0;
+            var reservedType:Int? = nil;
             switch messageCategorizing {
             case is IMTextMessage:
                 reservedType = IMTextMessage.messageType;
@@ -118,7 +246,9 @@ extension IMMessage{
             default:
                 break
             }
-            data["mediaType"] = reservedType
+            if(reservedType != nil ){
+                data["mediaType"] = reservedType
+            }
         }
         return data
     }
@@ -141,27 +271,26 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
     var channel : FlutterMethodChannel!;
     
     func registerCustomMessage( mediaType : Int){
-        CustomMessage._messageType = mediaType
         do {
-            try CustomMessage.register()
+            try CustomMessageTypeMap[mediaType]!.register()
         } catch {
             print(error)
         }
     }
     
-    func OnMessageReceive(_ client: IMClient, conversation: IMConversation, event: IMConversationEvent) {
-        switch event {
-        case .message(event: let messageEvent):
-            switch messageEvent {
-            case .received(message: let message):
-                print(message)
-            default:
-                break
-            }
-        default:
-            break
-        }
-    }
+//    func OnMessageReceive(_ client: IMClient, conversation: IMConversation, event: IMConversationEvent) {
+//        switch event {
+//        case .message(event: let messageEvent):
+//            switch messageEvent {
+//            case .received(message: let message):
+//                print(message)
+//            default:
+//                break
+//            }
+//        default:
+//            break
+//        }
+//    }
     
     public func client(_ client: IMClient, event: IMClientEvent) {
         print("client(_ client: IMClient, event: IMClientEvent)")
@@ -189,32 +318,52 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
         }
     }
     
+    func createFlutterError(error:Any) -> FlutterError{
+        let message = String(describing:error)
+        return FlutterError.init(code: "Error",message:message ,details: nil )
+    }
+    
+    func CreateClient(user:LCUser, result: @escaping FlutterResult) {
+        do{
+            let options: IMClient.Options = { var dOptions = IMClient.Options.default; dOptions.remove(.usingLocalStorage); return dOptions }()
+            self.client = try IMClient(
+                user: user,
+                tag: "mobile",
+                options:options,
+                delegate:self
+            )
+            
+            self.client.open(completion: { (__result) in
+                print("client.open")
+                result("")
+                // 执行其他逻辑
+            })
+        }catch {
+            print(error)
+            result(self.createFlutterError(error: error))
+        }
+    }
+    
     func become( sessionToken: String, result: @escaping FlutterResult){
-
+        if(self.lastSessionToken == sessionToken){
+            result("")
+            return
+        }
+        LCUser.logOut()
         LCUser.logIn(sessionToken: sessionToken){ (_result) in
             switch _result {
             case .success(object: let user):
-                do {
-                    let options: IMClient.Options = { var dOptions = IMClient.Options.default; dOptions.remove(.usingLocalStorage); return dOptions }()
-                    self.client = try IMClient(
-                        user: user,
-                        tag: "mobile",
-                        options:options,
-                        delegate:self
-                    )
-                    
-                    self.client.open(completion: { (__result) in
-                        print("client.open")
-                        result("")
-                        // 执行其他逻辑
-                    })
-                } catch {
-                    print(error)
-                    result(error)
+                self.lastSessionToken = sessionToken
+                if(self.client != nil){
+                    self.client!.close(){(completion) in
+                        self.CreateClient(user:user,result:result)
+                    }
+                }else{
+                    self.CreateClient(user:user,result:result)
                 }
             case .failure(error: let error):
                 print(error)
-                result(error)
+                result(self.createFlutterError(error: error))
             }
         }
     }
@@ -226,7 +375,7 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
             }
         } catch {
             print(error)
-            result(error)
+            result(createFlutterError(error: error))
         }
         
     }
@@ -244,7 +393,7 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
             }
         }  catch {
                    print(error)
-                   result(error)
+            result(createFlutterError(error: error))
                }
         
     }
@@ -287,13 +436,13 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
                     }
                 } catch {
                            print(error)
-                           result(error)
+                    result(self.createFlutterError(error: error))
                        }
                 
             }
         } catch {
             print(error)
-            result(error)
+            result(createFlutterError(error: error))
         }
         
     }
@@ -307,11 +456,11 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
                     return
                 }
                 conversation.value!.read()
+                result("")
             }
-            result(nil)
         }catch {
             print(error)
-            result(error)
+            result(createFlutterError(error: error))
         }
     }
     
@@ -320,7 +469,7 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
         do {
             try self.client.getCachedConversation(ID: id){(conversation) in
                 if(conversation.isFailure){
-                    result(conversation.error)
+                    result(self.createFlutterError(error: conversation.error))
                     return
                 }
                 do {
@@ -337,18 +486,60 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
                     result(error)
                 }
             }
-            result(nil)
         }catch {
             print(error)
-            result(error)
+            result(createFlutterError(error: error))
         }
     }
     
+    func ConversationSendMessage(params:[String: Any],result: @escaping FlutterResult){
+        print("ConversationSendMessage")
+        let mediaType = params["mediaType"] as! Int
+        let conversationId = params["conversationId"] as! String
+        let message = params["message"] as! [String: Any]
+        let pushData = params["pushData"] as? [String: Any]
+        let progressId = params["progress"]
+        
+        var progress:((Double) -> Void)? = nil
+        if(progressId != nil){
+            progress = {(p)in
+                self.channel.invokeMethod("OnProgressCallback",arguments: [progressId,p])
+            }
+        }
+        do {
+            try self.client.getCachedConversation(ID: conversationId){(conversation) in
+                if(conversation.isFailure){
+                    result(self.createFlutterError(error: conversation.error))
+                    return
+                }
+                do {
+                    var message = CustomMessageTypeMap[mediaType]!.init()
+                    message.fromMap(data: params["message"] as! [String : Any])
+                    try conversation.value!.send(message: message,pushData:pushData,progress:progress){
+                        (_result)in
+                        print("conversation.value!.send completed")
+                            if(_result.isFailure){
+                                result(_result.error)
+                            return
+                            }
+                        result(_result.isSuccess)
+                    }
+                }catch {
+                    print(error)
+                    result(error)
+                }
+            }
+        }catch {
+            print(error)
+            result(createFlutterError(error: error))
+        }
+    }
+     var lastSessionToken:String? = nil
  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch(call.method){
     case "getPlatformVersion":do {
             result("iOS " + UIDevice.current.systemVersion)
-            break
+            return
         }
     case "Init":do {
 
@@ -362,18 +553,41 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
                 result("")
             } catch {
                 print(error)
-                result(error)
+                result(createFlutterError(error: error))
             }
-            break
+            return
         }
     case "become":do {
         become(sessionToken: call.arguments as! String,result: result)
-        break
+        return
+        }
+    case "close":do {
+        if(self.client != nil){
+            self.client!.close(){(completion) in
+                result("")
+            }
+            self.client = nil
+        }else{
+            result("")
+        }
+        LCUser.logOut()
+        self.lastSessionToken = nil
+        return
         }
     case "registerCustomMessage":do {
         self.registerCustomMessage(mediaType: call.arguments as! Int)
-        break
+        return
         }
+    default:
+        break;
+    }
+    
+    if(self.client == nil){
+        print("client is nil")
+        result(createFlutterError(error: "client is nil"));
+        return;
+    }
+    switch(call.method){
     case "getConversations":do{
         self.getConversations(IDs: call.arguments as! [String], result:result)
         break
@@ -391,10 +605,13 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
     case "CreateConversation":do{
         self.CreateConversation(params: call.arguments as! [String:Any], result: result )
         }
+    case "ConversationSendMessage":do{
+        self.ConversationSendMessage(params: call.arguments as! [String:Any], result: result )
+        }
         
     default:
         print("unknown method "+call.method)
-        result(nil);
+        result(createFlutterError(error: "unknown method"));
     }
     }
 }

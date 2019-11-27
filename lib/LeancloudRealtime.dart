@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:leancloud_realtime_flutter/AVIMConversation.dart';
-import 'package:leancloud_realtime_flutter/AVIMMessage.dart';
 import 'package:leancloud_realtime_flutter/Message.dart';
 import 'package:leancloud_realtime_flutter/AVIMMessageMediaType.dart';
 
@@ -15,7 +14,7 @@ class LeancloudRealtime {
     return version;
   }
 
-  static AVIMTypedMessage _CreateMessage(Map<dynamic,dynamic> arguments){
+  static AVIMMessage _CreateMessage(Map<dynamic,dynamic> arguments){
       var data = arguments.map((a, b) => MapEntry(a as String, b));
       if(data["content"]!=null){
         data["rawData"] = jsonDecode( data["content"] );
@@ -89,6 +88,10 @@ class LeancloudRealtime {
           OnMessageRead(call.arguments[0],call.arguments[1],call.arguments[3]);
         }
         break;
+        case 'OnProgressCallback':{
+          _OnProgressCallback(call.arguments[0],call.arguments[1]);
+        }
+        break;
       }
     }
      on Error catch(error){
@@ -125,10 +128,14 @@ class LeancloudRealtime {
     print(result);
   }
 
-  static Future<List<AVIMTypedMessage>>  QueryMessage(AVIMConversation conversation,Map<String,dynamic> params)  async {
+  static Future<void>  close()  async {
+    await _channel.invokeMethod('close');
+  }
+
+  static Future<List<AVIMMessage>>  QueryMessage(AVIMConversation conversation,Map<String,dynamic> params)  async {
     params["conversationId"] = conversation.conversationId;
     var result = (await _channel.invokeMethod('QueryMessage',params)) as List<dynamic>;
-    // var list = new List<AVIMTypedMessage>();
+    // var list = new List<AVIMMessage>();
     // result.fo
     return result?.map((f)=>_CreateMessage(f as Map<dynamic,dynamic>)).toList();
   }
@@ -171,17 +178,62 @@ class LeancloudRealtime {
   static void ConversationSendText(AVIMConversation conversation,String text)   async{
     return _channel.invokeMethod('ConversationSendText',[conversation.conversationId,text]); 
   }
+  static int _progressCallbackIndex = 0;
+  static Map<int,Event<num>> _progressCallbackMap = new Map<int,Event<num>>();
+
+  static _OnProgressCallback(int index,double progress){
+    if(_progressCallbackMap[index]!=null){
+      _progressCallbackMap[index](progress);
+    }else{
+      print("missing progressCallback Index "+index.toString());
+    }
+  }
+
+  static Future ConversationSendMessage(AVIMConversation conversation,AVIMMessage message,{
+    Map<dynamic,dynamic> pushData,
+    Event<num>progress
+  })   async{
+    int progressCallbackIndex;
+    if(progress!=null){
+      progressCallbackIndex = _progressCallbackIndex++;
+      _progressCallbackMap[progressCallbackIndex] = progress;
+    }
+    message.messageStatus = AVIMMessageStatus.sending;
+    try{
+      var args = {
+        "mediaType":message.mediaType,
+        "conversationId":conversation.conversationId,
+        "message":message.encoding(),
+        "pushData":pushData,
+        "progress":progressCallbackIndex
+      };
+      args.removeWhere((k,v)=>v==null);
+      var result = await _channel.invokeMethod('ConversationSendMessage',args); 
+      print("ConversationSendMessage finish");
+      message.messageStatus = AVIMMessageStatus.sent;
+      if(progressCallbackIndex!=null){
+        _progressCallbackMap.remove(progressCallbackIndex);
+      }
+      return result;
+    }catch(error){
+      message.messageStatus = AVIMMessageStatus.failed;
+      if(progressCallbackIndex!=null){
+        _progressCallbackMap.remove(progressCallbackIndex);
+      }
+      throw error;
+    }
+  }
   
 
   static Map<int,AVIMMessageFactory> _messageFactoryMap = new Map<int,AVIMMessageFactory>();
   /**
    * received(message: IMMessage)
    */
-  static Event<AVIMTypedMessage> OnMessageReceived;
+  static Event<AVIMMessage> OnMessageReceived;
   /**
    * updated(updatedMessage: IMMessage, reason: IMMessage.PatchedReason?)
    */
-  static Event2<AVIMTypedMessage,PatchedReason> OnMessageUpdated;
+  static Event2<AVIMMessage,PatchedReason> OnMessageUpdated;
   /**
    * delivered(toClientID: String?, messageID: String, deliveredTimestamp: Int64)
    */
@@ -191,7 +243,7 @@ class LeancloudRealtime {
    */
   static Event3<String,String,int> OnMessageRead;
 }
-typedef AVIMMessageFactory = AVIMTypedMessage Function();
+typedef AVIMMessageFactory = AVIMMessage Function();
 typedef Event<T> = void Function(T a);
 typedef Event2<A,B> = void Function(A a,B b);
 typedef Event3<A,B,C> = void Function(A a,B b,C c);

@@ -1,4 +1,5 @@
-flutter 插件 leancloud_realtime_flutter
+leancloud 的 即时消息 flutter 插件 leancloud_realtime_flutter
+当前仅支持了ios版本
 
 # 初始化
 ```dart
@@ -27,10 +28,21 @@ flutter 插件 leancloud_realtime_flutter
 
 # 注册自定义消息
 ```dart
-    //注册自定义消息,重载 decoding 获取自定义字段内容
+    //注册自定义消息
     LeancloudRealtime.registerCustomMessage(1,()=>new MyMessageType());
-class MyMessageType extends AVIMFileMessageBase{
-  MyMessageType():super(mediaType:1);
+
+class MyMessageType extends AVIMMessage{
+  MyMessageType({String value}):super(mediaType:1){
+    customField = value;
+  }
+//设置自定义内容
+  void set customField (String value){
+    rawData["customField"] = value;
+  }
+//读取自定义内容
+  String get customField{
+    return rawData["customField"];
+  }
 }
 ```
 
@@ -42,6 +54,21 @@ class MyMessageType extends AVIMFileMessageBase{
     // 发送文本消息
     await conversation.SendTextMessageAsync('test 1');
 ```
+
+# 发送文件消息
+```dart
+  TestSendImage( String filePath )async {
+    print("TestSendImage");
+    var imageMessage = new AVIMImageMessage(filePath:filePath );
+    var conversation = await LeancloudRealtime.CreateConversation(["5ddb2c15844bb4008874ec3b"],name: "测试");
+    print(conversation.conversationId);
+    // 发送文本消息, progress为进度回调
+    await conversation.Send(imageMessage, progress: (f)=> print(f));
+    print("TestSendImage Finish");
+  }
+```
+其他类型消息,选择对应的文件消息类发送
+
 
 # 拉取消息
 ```dart

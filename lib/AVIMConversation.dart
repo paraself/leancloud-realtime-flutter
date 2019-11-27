@@ -1,4 +1,3 @@
-import 'package:leancloud_realtime_flutter/AVIMMessage.dart';
 import 'package:leancloud_realtime_flutter/Message.dart';
 import 'package:leancloud_realtime_flutter/LeancloudRealtime.dart';
 
@@ -49,7 +48,7 @@ class AVIMConversation{
   /**
    *  The last message of the conversation.
   */ 
-  AVIMTypedMessage lastMessage;
+  AVIMMessage lastMessage;
 
   /**
    * 对话中存在的 Client 的 Id 列表
@@ -139,7 +138,7 @@ class AVIMConversation{
     ///   - limit: The limit of the query result, should in range `limitRangeOfMessageQuery`. default is 20.
     ///   - type: @see `IMMessageCategorizing.MessageType`.
    */
-  Future<List<AVIMTypedMessage>> QueryMessage({
+  Future<List<AVIMMessage>> QueryMessage({
         MessageQueryEndpoint start,
         MessageQueryEndpoint end,
         MessageQueryDirection direction,
@@ -185,9 +184,6 @@ class AVIMConversation{
   Future SaveAsync()async{
 
   }
-  Future<bool> Send(AVIMTypedMessage message)async{
-
-  }
   // /**
   //  * 发送音频消息
   //  */
@@ -215,7 +211,7 @@ class AVIMConversation{
   // /**
   //  * 发送富媒体消息
   //  */
-  // Future<bool> SendTypedMessageAsync(AVIMTypedMessage avTypedMessage)async{
+  // Future<bool> SendTypedMessageAsync(AVIMMessage avTypedMessage)async{
 
   // }
   // /**
@@ -236,12 +232,19 @@ class AVIMConversation{
   Future SendTextMessageAsync(String text)async{
     return LeancloudRealtime.ConversationSendText(this, text);
   }
-  
-  void SetAttribute(
-    String key,
-    dynamic value){
 
+  Future Send(AVIMMessage message,{
+    Map<dynamic,dynamic> pushData,
+    Event<num>progress
+  }){
+    return LeancloudRealtime.ConversationSendMessage(this, message,pushData:pushData,progress:progress);
   }
+  
+  // void setAttribute(
+  //   String key,
+  //   dynamic value){
+  //     attributes[key] = value;
+  // }
   /**
    * 当前 Client 取消针对该对话的静音操作，重新接受消息。
    */
