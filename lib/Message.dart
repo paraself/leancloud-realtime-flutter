@@ -65,6 +65,28 @@ enum AVIMMessageStatus{
 }
 
 class AVIMMessage {
+
+  @override
+  String toString() {
+    return jsonEncode( {
+      "id":id,
+      "conversationId":conversationId,
+      "fromClientId":fromClientId,
+      "readTimestamp":readTimestamp,
+      "sentTimestamp":sentTimestamp,
+      "deliveredTimestamp":deliveredTimestamp,
+      "isAllMembersMentioned":isAllMembersMentioned,
+      "mentionedMembers":mentionedMembers,
+      "isCurrentClientMentioned":isCurrentClientMentioned,
+      "rawData":rawData,
+      "text":text,
+      "file":file?.encoding(),
+      "attributes":attributes,
+      "isAllMembersMentioned":isAllMembersMentioned,
+      "mentionedMembers":mentionedMembers,
+    } );
+  }
+
   AVIMMessage({
     this.mediaType,String filePath
   }){
@@ -164,10 +186,10 @@ class AVIMMessage {
       this.attributes = (data['attributes'] as Map<dynamic, dynamic>).map<String,dynamic>((a, b) => MapEntry(a as String, b));
     }
 
-    var file = this.rawData['_lcfile'] as Map<String, Object>;
+    var file = this.rawData['_lcfile'];
     if(file!=null){
       this.file = new AVFile();
-      this.file.decoding(file);
+      this.file.decoding(file as Map<dynamic, dynamic>);
     }
   }
 

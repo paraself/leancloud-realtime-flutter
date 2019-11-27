@@ -208,13 +208,19 @@ class LeancloudRealtime {
         "progress":progressCallbackIndex
       };
       args.removeWhere((k,v)=>v==null);
-      var result = await _channel.invokeMethod('ConversationSendMessage',args); 
+      var result = (await _channel.invokeMethod('ConversationSendMessage',args)) as Map<dynamic,dynamic>; 
       print("ConversationSendMessage finish");
       message.messageStatus = AVIMMessageStatus.sent;
       if(progressCallbackIndex!=null){
         _progressCallbackMap.remove(progressCallbackIndex);
       }
-      return result;
+
+      if(result["content"]!=null){
+        result["rawData"] = jsonDecode( result["content"] );
+      }
+
+      message.decoding(result.map((a, b) => MapEntry(a as String, b)));
+      return message;
     }catch(error){
       message.messageStatus = AVIMMessageStatus.failed;
       if(progressCallbackIndex!=null){

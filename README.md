@@ -57,14 +57,16 @@ class MyMessageType extends AVIMMessage{
 
 # 发送文件消息
 ```dart
-  TestSendImage( String filePath )async {
+  TestSendImage()async {
+    //创建对话,默认 isUnique为真
     print("TestSendImage");
-    var imageMessage = new AVIMImageMessage(filePath:filePath );
+    var imageMessage = new AVIMImageMessage(filePath:_imgPath.path );
     var conversation = await LeancloudRealtime.CreateConversation(["5ddb2c15844bb4008874ec3b"],name: "测试");
     print(conversation.conversationId);
-    // 发送文本消息, progress为进度回调
+    // 发送文本消息 , progress为进度回调
     await conversation.Send(imageMessage, progress: (f)=> print(f));
     print("TestSendImage Finish");
+    print(imageMessage.toString());
   }
 ```
 其他类型消息,选择对应的文件消息类发送

@@ -522,7 +522,7 @@ public class SwiftLeancloudRealtimeFlutterPlugin: NSObject, FlutterPlugin, IMCli
                                 result(_result.error)
                             return
                             }
-                        result(_result.isSuccess)
+                        result(message.toMap())
                     }
                 }catch {
                     print(error)
