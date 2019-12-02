@@ -4,8 +4,8 @@ leancloud 的 即时消息 flutter 插件 leancloud_realtime_flutter
 # 初始化
 ```dart
     LeancloudRealtime.Init(
-                id: "nqrNKuRWPxIFX9ef6cCwsRWG-gzGzoHsz",
-                key: "tsgAYmrnR9bGinTcmcIYSqlA",
+                id: "your leancloud id",
+                key: "your leancloud id",
                 serverURL: "https://leancloud.cn"
       );
 ```
