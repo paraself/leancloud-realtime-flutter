@@ -186,10 +186,12 @@ class AVIMMessage {
       this.attributes = (data['attributes'] as Map<dynamic, dynamic>).map<String,dynamic>((a, b) => MapEntry(a as String, b));
     }
 
-    var file = this.rawData['_lcfile'];
-    if(file!=null){
-      this.file = new AVFile();
-      this.file.decoding(file as Map<dynamic, dynamic>);
+    if(this.rawData is Map<dynamic, dynamic>){
+      var file = this.rawData['_lcfile'];
+      if(file!=null){
+        this.file = new AVFile();
+        this.file.decoding(file as Map<dynamic, dynamic>);
+      }
     }
   }
 

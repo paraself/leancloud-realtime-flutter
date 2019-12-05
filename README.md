@@ -25,6 +25,11 @@ leancloud 的 即时消息 flutter 插件 leancloud_realtime_flutter
     //用session token 登入
     await LeancloudRealtime.become("ivdct9mt0c0sfg9nho23n1ox7");
 ```
+# 登出
+```dart
+    //用session token 登入
+    await LeancloudRealtime.close();
+```
 
 # 注册自定义消息
 ```dart

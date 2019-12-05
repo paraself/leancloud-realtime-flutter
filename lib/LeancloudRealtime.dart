@@ -17,15 +17,31 @@ class LeancloudRealtime {
   static AVIMMessage _CreateMessage(Map<dynamic,dynamic> arguments){
       var data = arguments.map((a, b) => MapEntry(a as String, b));
       if(data["content"]!=null){
-        data["rawData"] = jsonDecode( data["content"] );
+        try{
+          data["rawData"] = jsonDecode( data["content"] );
+        }on FormatException catch(error){
+          var message = new AVIMMessage();
+          message.text = data["content"];
+          message.decoding(data);
+          return message;
+        }
       }
       var mediaType = data["mediaType"];
       if(mediaType==null && data["rawData"]!=null){
         mediaType = data["rawData"]["_lctype"] ;
+        if(mediaType==null && data["rawData"]["data"]  is Map<dynamic, dynamic> ){
+          data["rawData"] = data["rawData"]["data"];
+          mediaType = data["rawData"]["_lctype"] ;
+        }
       }
       if(mediaType==null ){
-        print('mediaType==null rawData '+data["content"]);
-        throw new ArgumentError('mediaType==null rawData '+data["content"] );
+        //旧版消息内容,直接返回AVIMMessage
+        var message = new AVIMMessage();
+        message.text = data["content"];
+        message.decoding(data);
+        return message;
+        // print('mediaType==null rawData '+data["content"]);
+        // throw new ArgumentError('mediaType==null rawData '+data["content"] );
       }
       var messageFactory = _messageFactoryMap[mediaType];
       if(messageFactory==null){
@@ -137,7 +153,7 @@ class LeancloudRealtime {
     var result = (await _channel.invokeMethod('QueryMessage',params)) as List<dynamic>;
     // var list = new List<AVIMMessage>();
     // result.fo
-    return result?.map((f)=>_CreateMessage(f as Map<dynamic,dynamic>)).toList();
+    return result?.map((f)=>_CreateMessage(f as Map<dynamic,dynamic>))?.toList();
   }
 
   static void registerCustomMessage(int mediaType,AVIMMessageFactory messageFactory){
@@ -146,7 +162,7 @@ class LeancloudRealtime {
 
   static Future<List<AVIMConversation>> getConversations(List<String> IDs)  async{
     var result = await _channel.invokeMethod('getConversations',IDs) as List<dynamic>;
-    return result?.map((f)=>_UpdateConversation(f)).toList();
+    return result?.map((f)=>_UpdateConversation(f))?.toList();
   }
 
 /**
