@@ -13,7 +13,7 @@ leancloud 的 即时消息 flutter 插件 leancloud_realtime_flutter
 ```dart
     //收到消息的回调
     LeancloudRealtime.OnMessageReceived = OnMessageReceived;
-  OnMessageReceived(AVIMTypedMessage message){
+  OnMessageReceived(AVIMMessage message){
     print( message.text) ;
     if(message is AVIMFileMessageBase){
       print( message.url) ;
